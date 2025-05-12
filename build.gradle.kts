@@ -20,7 +20,6 @@ intellij {
 tasks {
     patchPluginXml {
         sinceBuild.set("232")
-        // todo remove untilBuild so any new version can install
         untilBuild.set("243.*")
     }
 

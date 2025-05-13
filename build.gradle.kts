@@ -24,8 +24,7 @@ tasks {
     }
 
     publishPlugin {
-        // Set your plugin publishing token
-        // token.set(System.getenv("PUBLISH_TOKEN"))
+         token.set(System.getenv("PUBLISH_TOKEN"))
     }
 }
 
@@ -33,7 +32,6 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Ensure Kotlin compatibility
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     kotlinOptions {
         jvmTarget = "17"

@@ -9,6 +9,7 @@ import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.xml.XmlFile
 import com.intellij.openapi.vfs.VirtualFile
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
 
 class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
     override fun getGotoDeclarationTargets(
@@ -18,7 +19,6 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
     ): Array<PsiElement>? {
         val project = sourceElement?.project ?: return null
 
-        // We need to check if this is a reference to Res.string.SOME_KEY
         val resourceKey = findResourceKey(sourceElement) ?: return null
 
         val result = mutableListOf<PsiElement>()
@@ -45,11 +45,18 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
     }
 
     private fun findResourceKey(element: PsiElement?): String? {
-        // Check if this element is part of a Res.string.SOME_KEY reference
-        var current = element
-        var dotQualifier: KtDotQualifiedExpression? = null
+        if (element == null) return null
 
-        // Walk up the PSI tree to find the full qualified expression
+        var current = element
+
+        if (element is KtNameReferenceExpression) {
+            val qualifiedExpression = element.getQualifiedExpressionForSelector()
+            if (qualifiedExpression != null) {
+                return extractResourceKeyFromExpression(qualifiedExpression)
+            }
+        }
+
+        var dotQualifier: KtDotQualifiedExpression? = null
         while (current != null) {
             if (current is KtDotQualifiedExpression) {
                 dotQualifier = current
@@ -58,14 +65,13 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
             current = current.parent
         }
 
-        if (dotQualifier == null) return null
+        return dotQualifier?.let { extractResourceKeyFromExpression(it) }
+    }
 
-        // Check if this is Res.string.SOME_KEY pattern
-        val fullExpression = dotQualifier.text
+    private fun extractResourceKeyFromExpression(expression: KtExpression): String? {
+        val fullExpression = expression.text
 
-        // Check for Res.string.* pattern
         if (fullExpression.startsWith("Res.string.") || fullExpression.startsWith("Res.strings.")) {
-            // Extract the resource key (the part after the last dot)
             val resourceKey = fullExpression.substringAfterLast('.')
             return if (resourceKey.isNotEmpty() && resourceKey.matches("[a-zA-Z_][a-zA-Z0-9_]*".toRegex())) {
                 resourceKey
@@ -108,14 +114,30 @@ class ComposeMPResourceNavigationProvider {
 
     companion object {
         fun isComposeResource(element: PsiElement): Boolean {
+            if (element is KtNameReferenceExpression) {
+                val qualifiedExpression = element.getQualifiedExpressionForSelector()
+                return qualifiedExpression?.text?.startsWith("Res.") == true
+            }
+
             val expression = element.parent as? KtDotQualifiedExpression
             return expression?.text?.startsWith("Res.") == true
         }
 
         fun getResourceType(element: PsiElement): String? {
-            val expression = element.parent as? KtDotQualifiedExpression ?: return null
-            val text = expression.text
+            // K2-compatible approach
+            if (element is KtNameReferenceExpression) {
+                val qualifiedExpression = element.getQualifiedExpressionForSelector()
+                if (qualifiedExpression != null) {
+                    return getResourceTypeFromText(qualifiedExpression.text)
+                }
+            }
 
+            // Fallback for K1
+            val expression = element.parent as? KtDotQualifiedExpression ?: return null
+            return getResourceTypeFromText(expression.text)
+        }
+
+        private fun getResourceTypeFromText(text: String): String? {
             return when {
                 text.startsWith("Res.string.") || text.startsWith("Res.strings.") -> "string"
                 text.startsWith("Res.drawable.") -> "drawable"

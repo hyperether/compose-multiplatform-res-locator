@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.hyperether"
-version = "1.0.5"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
@@ -29,9 +29,9 @@ tasks {
         """.trimIndent())
     }
 
-//    publishPlugin {
-//        token.set(System.getenv("PUBLISH_TOKEN"))
-//    }
+    publishPlugin {
+        token.set(System.getenv("PUBLISH_TOKEN"))
+    }
 
     // Increase build timeout for newer IntelliJ versions
     buildSearchableOptions {

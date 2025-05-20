@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.hyperether"
-version = "1.0.1"
+version = "1.1.0"
 
 repositories {
     mavenCentral()
@@ -23,6 +23,7 @@ tasks {
         untilBuild.set("251.*")
         changeNotes.set("""
             <ul>
+                <li>Added support for drawables</li>
                 <li>Added support for K2 Kotlin compiler</li>
                 <li>Updated compatibility with IntelliJ 2025</li>
             </ul>

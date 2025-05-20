@@ -20,6 +20,7 @@
       <li>Full K2 Kotlin compiler support (2024.1+ IDEs)</li>
       <li>Compatible with Compose Multiplatform projects</li>
       <li>Supports strings.xml resources in all values directories</li>
+      <li>Supports drawable resources</li>
       <li>Compatible with IntelliJ IDEA 2025.1.1</li>
     </ul>
   ]]></description>

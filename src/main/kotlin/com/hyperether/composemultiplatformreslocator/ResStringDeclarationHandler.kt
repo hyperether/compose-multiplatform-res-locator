@@ -3,12 +3,16 @@ package com.hyperether.composemultiplatformreslocator
 import com.intellij.codeInsight.navigation.actions.GotoDeclarationHandler
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.editor.Editor
-import com.intellij.psi.*
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiManager
 import com.intellij.psi.search.FileTypeIndex
+import com.intellij.psi.search.FilenameIndex
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.xml.XmlFile
-import com.intellij.openapi.vfs.VirtualFile
-import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
+import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
 
 class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
@@ -39,14 +43,31 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
                 if (stringElement != null) {
                     result.add(stringElement)
                 }
-            } else if (isDrawableXmlFile(virtualFile)) {
-                val fileName = virtualFile.name.removeSuffix(".xml")
-                if(fileName == resourceKey) {
+            } else if (isDrawableFile(virtualFile)) {
+                val fileName = virtualFile.nameWithoutExtension
+                if (fileName == resourceKey) {
                     val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
                     psiFile?.firstChild?.let {
                         result.add(it)
                     }
 
+                }
+
+                if (result.isEmpty()) {
+                    // Search for common image file types
+                    val imageExtensions = listOf("png", "jpg", "jpeg", "gif", "webp", "9.png")
+                    for (extension in imageExtensions) {
+                        val fileName = "$resourceKey.$extension"
+                        FilenameIndex.getVirtualFilesByName(fileName, GlobalSearchScope.projectScope(project))
+                            .forEach { virtualFile ->
+                                if (isDrawableFile(virtualFile)) {
+                                    val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
+                                    psiFile?.let {
+                                        result.add(it)
+                                    }
+                                }
+                            }
+                    }
                 }
             }
         }
@@ -104,9 +125,9 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
         return parent?.name?.startsWith("values") == true
     }
 
-    private fun isDrawableXmlFile(virtualFile: VirtualFile): Boolean {
+    private fun isDrawableFile(virtualFile: VirtualFile): Boolean {
         val parent = virtualFile.parent
-        if(virtualFile.path.contains("build")) {
+        if (virtualFile.path.contains("build")) {
             return false
         }
         return parent?.name?.startsWith("drawable") == true

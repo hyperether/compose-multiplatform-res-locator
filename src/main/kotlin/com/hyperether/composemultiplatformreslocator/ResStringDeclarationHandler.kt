@@ -19,7 +19,8 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
     ): Array<PsiElement>? {
         val project = sourceElement?.project ?: return null
 
-        val resourceKey = findResourceKey(sourceElement) ?: return null
+        val resourcePair = findResourceKey(sourceElement) ?: return null
+        val resourceKey = resourcePair.first
 
         val result = mutableListOf<PsiElement>()
 
@@ -38,13 +39,22 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
                 if (stringElement != null) {
                     result.add(stringElement)
                 }
+            } else if (isDrawableXmlFile(virtualFile)) {
+                val fileName = virtualFile.name.removeSuffix(".xml")
+                if(fileName == resourceKey) {
+                    val psiFile = PsiManager.getInstance(project).findFile(virtualFile)
+                    psiFile?.firstChild?.let {
+                        result.add(it)
+                    }
+
+                }
             }
         }
 
         return if (result.isNotEmpty()) result.toTypedArray() else null
     }
 
-    private fun findResourceKey(element: PsiElement?): String? {
+    private fun findResourceKey(element: PsiElement?): Pair<String?, Type?>? {
         if (element == null) return null
 
         var current = element
@@ -68,13 +78,18 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
         return dotQualifier?.let { extractResourceKeyFromExpression(it) }
     }
 
-    private fun extractResourceKeyFromExpression(expression: KtExpression): String? {
+    private fun extractResourceKeyFromExpression(expression: KtExpression): Pair<String?, Type>? {
         val fullExpression = expression.text
 
         if (fullExpression.startsWith("Res.string.") || fullExpression.startsWith("Res.strings.")) {
             val resourceKey = fullExpression.substringAfterLast('.')
             return if (resourceKey.isNotEmpty() && resourceKey.matches("[a-zA-Z_][a-zA-Z0-9_]*".toRegex())) {
-                resourceKey
+                Pair(resourceKey, Type.STRING)
+            } else null
+        } else if (fullExpression.startsWith("Res.drawable.")) {
+            val resourceKey = fullExpression.substringAfterLast('.')
+            return if (resourceKey.isNotEmpty() && resourceKey.matches("[a-zA-Z_][a-zA-Z0-9_]*".toRegex())) {
+                Pair(resourceKey, Type.DRAWABLE)
             } else null
         }
 
@@ -89,7 +104,15 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
         return parent?.name?.startsWith("values") == true
     }
 
-    private fun findStringElementByName(xmlFile: XmlFile, name: String): PsiElement? {
+    private fun isDrawableXmlFile(virtualFile: VirtualFile): Boolean {
+        val parent = virtualFile.parent
+        if(virtualFile.path.contains("build")) {
+            return false
+        }
+        return parent?.name?.startsWith("drawable") == true
+    }
+
+    private fun findStringElementByName(xmlFile: XmlFile, name: String?): PsiElement? {
         val rootTag = xmlFile.rootTag ?: return null
 
         // Look for <string name="key">value</string>
@@ -109,42 +132,7 @@ class ResStringGotoDeclarationHandler : GotoDeclarationHandler {
     }
 }
 
-// Additional utility class to support different resource types in the future
-class ComposeMPResourceNavigationProvider {
-
-    companion object {
-        fun isComposeResource(element: PsiElement): Boolean {
-            if (element is KtNameReferenceExpression) {
-                val qualifiedExpression = element.getQualifiedExpressionForSelector()
-                return qualifiedExpression?.text?.startsWith("Res.") == true
-            }
-
-            val expression = element.parent as? KtDotQualifiedExpression
-            return expression?.text?.startsWith("Res.") == true
-        }
-
-        fun getResourceType(element: PsiElement): String? {
-            // K2-compatible approach
-            if (element is KtNameReferenceExpression) {
-                val qualifiedExpression = element.getQualifiedExpressionForSelector()
-                if (qualifiedExpression != null) {
-                    return getResourceTypeFromText(qualifiedExpression.text)
-                }
-            }
-
-            // Fallback for K1
-            val expression = element.parent as? KtDotQualifiedExpression ?: return null
-            return getResourceTypeFromText(expression.text)
-        }
-
-        private fun getResourceTypeFromText(text: String): String? {
-            return when {
-                text.startsWith("Res.string.") || text.startsWith("Res.strings.") -> "string"
-                text.startsWith("Res.drawable.") -> "drawable"
-                text.startsWith("Res.color.") -> "color"
-                // Add more resource types as needed
-                else -> null
-            }
-        }
-    }
+private enum class Type {
+    STRING,
+    DRAWABLE
 }

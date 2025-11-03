@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.hyperether"
-version = "1.1.0"
+version = "1.1.1"
 
 repositories {
     mavenCentral()
@@ -20,7 +20,7 @@ intellij {
 tasks {
     patchPluginXml {
         sinceBuild.set("241")
-        untilBuild.set("251.*")
+        untilBuild.set("252.*")
         changeNotes.set("""
             <ul>
                 <li>Added support for drawables</li>

@@ -43,5 +43,5 @@
     </extensions>
 
     <!-- Plugin version compatibility -->
-    <idea-version since-build="241" until-build="251.*"/>
+    <idea-version since-build="241"/>
 </idea-plugin>

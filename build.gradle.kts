@@ -2,7 +2,6 @@ import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    id("java")
     kotlin("jvm") version "2.3.10"
     id("org.jetbrains.intellij.platform") version "2.11.0"
 }
@@ -30,13 +29,16 @@ intellijPlatform {
             sinceBuild = "241"
         }
 
-        changeNotes = """
+        changeNotes =
+            """
             <ul>
-                <li>Added support for drawables</li>
-                <li>Added support for K2 Kotlin compiler</li>
-                <li>Updated compatibility with IntelliJ 2025</li>
+                <li>Migrated to IntelliJ Platform Gradle Plugin 2.x</li>
+                <li>Removed upper IDE version limit for broader compatibility</li>
+                <li>Updated Kotlin to 2.3.10</li>
+                <li>Updated Gradle to 9.3.1</li>
+                <li>Targets IntelliJ 2025.3+ SDK</li>
             </ul>
-        """.trimIndent()
+            """.trimIndent()
     }
 }
 
